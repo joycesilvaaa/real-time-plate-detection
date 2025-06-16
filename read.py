@@ -1,6 +1,5 @@
 import cv2
 import easyocr
-import csv
 import re
 
 reader = easyocr.Reader(['pt','en'], gpu=False)
@@ -11,21 +10,15 @@ def detectar_placa(frame, retornar_resultados=False):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     results = reader.readtext(gray)
     anotacoes = []
-    
-    for (bbox, texto, confianca) in results: 
+
+    for (bbox, texto, confianca) in results:
         texto_limpo = texto.upper().replace(" ", "").replace("-", "")
         if len(texto_limpo) >= 6 and any(char.isdigit() for char in texto_limpo):
             if regex_placa.match(texto_limpo):
                 print(f"✅ Possível placa: {texto_limpo} - Confiança: {confianca:.2f}")
-                salvar_placa(texto_limpo)
-                anotacoes.append((bbox, texto_limpo))
+                anotacoes.append((bbox, texto_limpo, confianca))
             else:
                 print(f"🔶 Texto não corresponde à placa: {texto_limpo}")
         else:
             print(f"🔸 Ignorado: {texto}")
     return anotacoes if retornar_resultados else frame
-
-def salvar_placa(texto):
-    with open('placas_detectadas.csv', mode="a", newline='', encoding='utf-8') as f:
-        write = csv.writer(f)
-        write.writerow([texto])

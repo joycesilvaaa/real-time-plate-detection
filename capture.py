@@ -2,11 +2,14 @@ import cv2
 from read import detectar_placa
 import threading
 import time
+import requests 
+import re
 
 quantidade_frames = 0
 frame_global = None
 lock = threading.Lock()
 anotacoes_ocr = []
+regex_placa = re.compile(r'^[A-Z]{3}[0-9][0-9A-Z][0-9]{2}$')
 
 def ocr_loop():
     global frame_global, anotacoes_ocr
@@ -15,10 +18,20 @@ def ocr_loop():
         with lock:
             if frame_global is not None:
                 frame_copy = frame_global.copy()
+            else:
+                continue
         try:
             resultados = detectar_placa(frame_copy, retornar_resultados=True)
             with lock:
-                anotacoes_ocr = resultados
+                for (bbox, texto, confianca) in resultados:
+                        if regex_placa.match(texto):
+                            try:
+                                requests.post("http://localhost:8000/api/inserir", data={
+                                    "placa": texto,
+                                    "confianca": confianca
+                                })
+                            except Exception as e:
+                                print("Erro ao enviar para API:", e)
         except Exception as e:
             print("Erro no OCR:", e)
 
